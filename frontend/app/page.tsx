@@ -111,7 +111,7 @@ export default function LandingPage() {
         <div className="flex items-center space-x-6 mt-4 md:mt-0">
           <Link href="/docs" className="hover:text-white transition-colors uppercase tracking-widest font-bold">Documentation</Link>
           <Link href="/audit" className="hover:text-white transition-colors uppercase tracking-widest font-bold">Security Audit</Link>
-          <a href="https://github.com" className="flex items-center space-x-1 hover:text-white transition-colors">
+          <a href="https://github.com/ayushg852/CipherVault" className="flex items-center space-x-1 hover:text-white transition-colors">
             <span>Source</span>
           </a>
         </div>
