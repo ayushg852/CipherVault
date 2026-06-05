@@ -25,14 +25,35 @@ export default function FileUploader({ onUnsavedChange }: FileUploaderProps) {
 
   useEffect(() => {
     onUnsavedChange?.(isUnsaved);
+    
+    // 1. Browser Level Guard (Reload/Close Tab)
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (isUnsaved) {
         e.preventDefault();
         e.returnValue = WARNING_MESSAGE;
       }
     };
+
+    // 2. Internal Link Guard (Next.js Navigation)
+    const handleInternalNavigation = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const closestLink = target.closest('a');
+      if (isUnsaved && closestLink) {
+        const confirmNav = window.confirm(WARNING_MESSAGE);
+        if (!confirmNav) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+        }
+      }
+    };
+
     window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('click', handleInternalNavigation, true); // Use capture phase to intercept
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('click', handleInternalNavigation, true);
+    };
   }, [isUnsaved, onUnsavedChange]);
 
   const handleUpload = async () => {
@@ -63,8 +84,6 @@ export default function FileUploader({ onUnsavedChange }: FileUploaderProps) {
       formData.append('maxDownloads', '1'); 
 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-      console.log(`Connecting to node cluster at: ${apiUrl}`);
-
       const response = await fetch(`${apiUrl}/api/files/upload`, {
         method: 'POST',
         body: formData,
@@ -129,6 +148,7 @@ export default function FileUploader({ onUnsavedChange }: FileUploaderProps) {
 
         <button 
           onClick={() => {
+            if (isUnsaved && !window.confirm(WARNING_MESSAGE)) return;
             setUploadResult(null);
             setHasCopied(false);
             setUploadState('idle');
