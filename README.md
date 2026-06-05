@@ -2,6 +2,8 @@
 
 ### Zero-Knowledge Secure Document Store
 
+**Live Application:** [cvault-secure.vercel.app](https://cvault-secure.vercel.app/)
+
 CipherVault is a premium, privacy-first file storage platform designed to ensure absolute data sovereignty. Built with a **Zero-Knowledge Architecture**, it ensures that even the host server cannot access, read, or decrypt your files. Every cryptographic operation happens exclusively in the user's browser.
 
 ---
@@ -14,6 +16,16 @@ CipherVault is a premium, privacy-first file storage platform designed to ensure
 - **The "Digital Seal" Protocol:** A secondary SHA-256 hashing layer that verifies file integrity locally post-decryption, detecting any server-side tampering.
 - **Automated Shredding Service:** Implements strict data retention policies via a background Cron service and a 3-attempt fail-safe policy.
 - **Modern Cyber-Sleek UI:** A multi-page glassmorphism interface built with **Next.js 14**, **Tailwind CSS v4**, and **Framer Motion**.
+
+---
+
+## 🌐 Cloud Infrastructure
+
+This platform is powered by a high-availability distributed stack:
+- **Frontend:** Hosted on **Vercel** with global edge distribution.
+- **Backend API:** High-performance Node.js service running on **Render**.
+- **Database:** Managed **MongoDB Atlas** cluster for encrypted metadata persistence.
+- **CI/CD:** Automated deployment pipeline triggered via **GitHub** actions.
 
 ---
 
