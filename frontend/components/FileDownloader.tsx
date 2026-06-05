@@ -21,7 +21,8 @@ export default function FileDownloader() {
     setVerificationState('fetching');
 
     try {
-      const response = await fetch(`http://localhost:5000/api/files/download/${cleanId}`);
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const response = await fetch(`${apiUrl}/api/files/download/${cleanId}`);
       if (response.status === 410 || response.status === 404) throw new Error('ACCESS_DENIED: Packet purged from cluster.');
       if (!response.ok) throw new Error('CONNECTION_FAILURE: Node unreachable.');
 
@@ -49,7 +50,7 @@ export default function FileDownloader() {
         }
 
         setVerificationState('success');
-        await fetch(`http://localhost:5000/api/files/${cleanId}/shred`, { method: 'POST' });
+        await fetch(`${apiUrl}/api/files/${cleanId}/shred`, { method: 'POST' });
         
         const url = window.URL.createObjectURL(decryptedBlob);
         const a = document.createElement('a');
@@ -64,7 +65,7 @@ export default function FileDownloader() {
         setPassword('');
       } catch (decryptErr: any) {
         if (decryptErr.message.includes('SECURITY_CRITICAL')) throw decryptErr;
-        const failResponse = await fetch(`http://localhost:5000/api/files/${cleanId}/fail`, { method: 'POST' });
+        const failResponse = await fetch(`${apiUrl}/api/files/${cleanId}/fail`, { method: 'POST' });
         const failData = await failResponse.json();
         throw new Error(failData.shredded ? 'CRITICAL: Max attempts reached. Packet destroyed.' : `INVALID_KEY: ${failData.remaining} attempts remaining.`);
       }
@@ -150,7 +151,7 @@ export default function FileDownloader() {
             <motion.div 
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-red-500/10 border border-red-900/50 p-4 rounded-xl flex items-start space-x-3 text-red-400 text-[10px] uppercase tracking-widest font-bold animate-bounce"
+              className="bg-red-500/10 border border-red-500/20 p-4 rounded-xl flex items-start space-x-3 text-red-400 text-[10px] uppercase tracking-widest font-bold animate-bounce"
             >
               <ShieldAlert className="w-4 h-4 shrink-0" />
               <span>{error}</span>

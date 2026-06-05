@@ -25,35 +25,14 @@ export default function FileUploader({ onUnsavedChange }: FileUploaderProps) {
 
   useEffect(() => {
     onUnsavedChange?.(isUnsaved);
-    
-    // 1. Browser Level Guard (Reload/Close Tab)
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (isUnsaved) {
         e.preventDefault();
         e.returnValue = WARNING_MESSAGE;
       }
     };
-
-    // 2. Next.js / Internal Link Guard
-    const handleInternalNavigation = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      const closestLink = target.closest('a');
-      if (isUnsaved && closestLink) {
-        const confirmNav = window.confirm(WARNING_MESSAGE);
-        if (!confirmNav) {
-          e.preventDefault();
-          e.stopImmediatePropagation();
-        }
-      }
-    };
-
     window.addEventListener('beforeunload', handleBeforeUnload);
-    document.addEventListener('click', handleInternalNavigation, true); // Capture phase
-    
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      document.removeEventListener('click', handleInternalNavigation, true);
-    };
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [isUnsaved, onUnsavedChange]);
 
   const handleUpload = async () => {
@@ -68,12 +47,9 @@ export default function FileUploader({ onUnsavedChange }: FileUploaderProps) {
     setUploadState('encrypting');
 
     try {
-      // Step 1: Client-Side Encryption
       const { encryptedBlob, iv, salt, fileHash } = await encryptFile(file, password);
       
-      // Artificial delay for cool animation
       await new Promise(r => setTimeout(r, 1200));
-      
       setUploadState('transmitting');
       
       const formData = new FormData();
@@ -86,22 +62,28 @@ export default function FileUploader({ onUnsavedChange }: FileUploaderProps) {
       formData.append('expiryHours', '24'); 
       formData.append('maxDownloads', '1'); 
 
-      const response = await fetch('http://localhost:5000/api/files/upload', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      console.log(`Connecting to node cluster at: ${apiUrl}`);
+
+      const response = await fetch(`${apiUrl}/api/files/upload`, {
         method: 'POST',
         body: formData,
       });
 
-      if (!response.ok) throw new Error('Encryption handoff failed');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown server error' }));
+        throw new Error(errorData.error || `Server returned ${response.status}`);
+      }
+
       const data = await response.json();
-      
       setUploadResult({ id: data.fileId, expiresAt: data.expiresAt });
       setUploadState('success');
       setFile(null);
       setPassword('');
       setConfirmPassword('');
-    } catch (err) {
-      console.error(err);
-      setError('CRITICAL_FAILURE: Secure transmission interrupted.');
+    } catch (err: any) {
+      console.error('Upload failure:', err);
+      setError(`CRITICAL_FAILURE: ${err.message || 'Secure transmission interrupted.'}`);
       setUploadState('idle');
     } finally {
       setIsUploading(false);
@@ -132,12 +114,12 @@ export default function FileUploader({ onUnsavedChange }: FileUploaderProps) {
         </div>
 
         <div className="bg-slate-950 border border-white/10 rounded-2xl p-6 flex flex-col items-center space-y-4 shadow-inner">
-          <label className="text-[10px] uppercase tracking-widest text-emerald-500/60 font-bold">Your Unique Access Token</label>
+          <label className="text-[10px] uppercase tracking-widest text-emerald-500/60 font-bold italic">Your Unique Access Token</label>
           <code className="text-emerald-400 font-mono text-lg break-all">{uploadResult.id}</code>
           <button 
             onClick={copyId} 
             className={`flex items-center space-x-2 px-8 py-3 rounded-xl transition-all duration-300 ${
-              hasCopied ? 'bg-emerald-500 text-slate-950' : 'bg-white/5 hover:bg-white/10 text-white'
+              hasCopied ? 'bg-emerald-500 text-slate-950 shadow-glow' : 'bg-white/5 hover:bg-white/10 text-white'
             }`}
           >
             <Copy className="w-4 h-4" />
@@ -147,7 +129,6 @@ export default function FileUploader({ onUnsavedChange }: FileUploaderProps) {
 
         <button 
           onClick={() => {
-            if (isUnsaved && !window.confirm(WARNING_MESSAGE)) return;
             setUploadResult(null);
             setHasCopied(false);
             setUploadState('idle');
@@ -178,7 +159,7 @@ export default function FileUploader({ onUnsavedChange }: FileUploaderProps) {
             ) : (
               <div className="space-y-1">
                 <p className="text-white font-semibold">Drop secure packet or click to browse</p>
-                <p className="text-slate-500 text-xs uppercase tracking-widest font-bold">Max payload: 50MB</p>
+                <p className="text-slate-500 text-[10px] uppercase tracking-widest font-black opacity-80">Max payload: 50MB</p>
               </div>
             )}
           </div>
